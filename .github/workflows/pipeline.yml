@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+  schedule:
+    # Executa de hora em hora (no minuto 0 de cada hora, em UTC)
+    - cron: '0 * * * *'
 
 jobs:
   build:
