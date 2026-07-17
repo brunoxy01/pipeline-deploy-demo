@@ -1,0 +1,11 @@
+{
+  "name": "pipeline-deploy-demo",
+  "version": "1.0.0",
+  "description": "Simple Hello World app used to demo a GitHub Actions pipeline",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "node test.js"
+  },
+  "license": "MIT"
+}

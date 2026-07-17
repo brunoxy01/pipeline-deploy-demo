@@ -1,0 +1,126 @@
+name: CI/CD Pipeline Demo
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: 1 - Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build artifact
+        run: |
+          echo "Building the Hello World app..."
+          mkdir -p dist
+          cp app.js package.json dist/
+          echo "Build finished."
+
+      - name: Simulate build workload (15s)
+        run: sleep 15
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-build
+          path: dist/
+          retention-days: 1
+
+  test:
+    name: 2 - Test
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-build
+          path: dist/
+
+      - name: Run tests
+        run: |
+          echo "Running unit tests..."
+          node test.js
+
+      - name: Simulate test workload (15s)
+        run: sleep 15
+
+  deploy:
+    name: 3 - Deploy (ephemeral)
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-build
+          path: dist/
+
+      - name: Start ephemeral app
+        run: |
+          echo "Starting ephemeral deployment on the runner..."
+          cd dist
+          nohup node app.js > ../app.log 2>&1 &
+          echo $! > ../app.pid
+          sleep 3
+          echo "App PID: $(cat ../app.pid)"
+
+      - name: Smoke test the running app
+        run: |
+          echo "Calling the app..."
+          curl --retry 5 --retry-delay 2 --fail http://localhost:3000/
+          echo "Deployment responded successfully."
+
+      - name: Simulate deploy workload (15s)
+        run: sleep 15
+
+      - name: Stop ephemeral app
+        if: always()
+        run: |
+          if [ -f app.pid ]; then
+            PID=$(cat app.pid)
+            echo "Stopping app PID $PID"
+            kill "$PID" || true
+          fi
+          echo "Ephemeral app terminated. Runner will be destroyed after the job."
+
+  cleanup:
+    name: 4 - Cleanup
+    needs: deploy
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cleanup notice
+        run: |
+          echo "Ephemeral environment already destroyed with the deploy runner."
+          echo "Removing temporary build artifacts..."
+
+      - name: Simulate cleanup workload (15s)
+        run: sleep 15
+
+      - name: Pipeline summary
+        run: |
+          echo "Pipeline finished:"
+          echo "  1. Build    -> OK"
+          echo "  2. Test     -> OK"
+          echo "  3. Deploy   -> OK (ephemeral)"
+          echo "  4. Cleanup  -> OK"
