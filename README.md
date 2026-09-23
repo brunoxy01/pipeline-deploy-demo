@@ -16,7 +16,7 @@ curl http://localhost:3000/
 ## Pipeline
 
 Defined in `.github/workflows/pipeline.yml`. It has 4 sequential jobs, each
-with a `sleep 15` step so the run is easy to demo:
+with a `sleep 15` step so the run is easy to demo: 
 
 1. **Build** – packages `app.js` into a `dist/` folder and uploads it as an
    artifact.
